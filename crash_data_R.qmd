@@ -1,0 +1,162 @@
+---
+title: "Reading the crash data in R"
+author: Douglas Bates
+affiliation: University of Wisconsin - Madison
+format: html
+---
+
+As with Python, the `arrow` package in R provides access to the CSV file reader in the underlying C++ library.
+
+```{r}
+tbl <- arrow::read_csv_arrow("./nyc_mv_collisions_202201.csv")
+tibble::glimpse(tbl)
+```
+
+
+```{r}
+arrow::write_feather(tbl, "./from_R.arrow")
+```
+
+This file can be read in `Julia` or in `Python`.
+
+```julia
+julia> from_R = Arrow.Table("from_R.arrow")
+Arrow.Table with 7659 rows, 29 columns, and schema:
+ Symbol("CRASH DATE")                     Union{Missing, String}
+ Symbol("CRASH TIME")                     Union{Missing, String}
+ :BOROUGH                                 Union{Missing, String}
+ Symbol("ZIP CODE")                       Union{Missing, Int32}
+ :LATITUDE                                Union{Missing, Float64}
+ :LONGITUDE                               Union{Missing, Float64}
+ :LOCATION                                Union{Missing, String}
+ Symbol("ON STREET NAME")                 Union{Missing, String}
+ Symbol("CROSS STREET NAME")              Union{Missing, String}
+ Symbol("OFF STREET NAME")                Union{Missing, String}
+ Symbol("NUMBER OF PERSONS INJURED")      Union{Missing, Int32}
+ Symbol("NUMBER OF PERSONS KILLED")       Union{Missing, Int32}
+ Symbol("NUMBER OF PEDESTRIANS INJURED")  Union{Missing, Int32}
+ Symbol("NUMBER OF PEDESTRIANS KILLED")   Union{Missing, Int32}
+ Symbol("NUMBER OF CYCLIST INJURED")      Union{Missing, Int32}
+ Symbol("NUMBER OF CYCLIST KILLED")       Union{Missing, Int32}
+ Symbol("NUMBER OF MOTORIST INJURED")     Union{Missing, Int32}
+ Symbol("NUMBER OF MOTORIST KILLED")      Union{Missing, Int32}
+ Symbol("CONTRIBUTING FACTOR VEHICLE 1")  Union{Missing, String}
+ Symbol("CONTRIBUTING FACTOR VEHICLE 2")  Union{Missing, String}
+ Symbol("CONTRIBUTING FACTOR VEHICLE 3")  Union{Missing, String}
+ Symbol("CONTRIBUTING FACTOR VEHICLE 4")  Union{Missing, String}
+ Symbol("CONTRIBUTING FACTOR VEHICLE 5")  Union{Missing, String}
+ :COLLISION_ID                            Union{Missing, Int32}
+ Symbol("VEHICLE TYPE CODE 1")            Union{Missing, String}
+ Symbol("VEHICLE TYPE CODE 2")            Union{Missing, String}
+ Symbol("VEHICLE TYPE CODE 3")            Union{Missing, String}
+ Symbol("VEHICLE TYPE CODE 4")            Union{Missing, String}
+ Symbol("VEHICLE TYPE CODE 5")            Union{Missing, String}
+
+julia> Table(from_R)
+Table with 29 columns and 7659 rows:
+      CRASH DATE  CRASH TIME  BOROUGH    ZIP CODE  LATITUDE  LONGITUDE  LOCATION              ON STREET NAME        ⋯
+    ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ 1  │ 01/01/2022  7:05        missing    missing   missing   missing    missing               EAST 128 STREET       ⋯
+ 2  │ 01/01/2022  14:43       missing    missing   40.77     -73.9158   (40.769993, -73.915…  GRAND CENTRAL PKWY    ⋯
+ 3  │ 01/01/2022  21:20       QUEENS     11414     40.6572   -73.8414   (40.65723, -73.8413…  91 STREET             ⋯
+ 4  │ 01/01/2022  4:30        missing    missing   missing   missing    missing               Southern parkway      ⋯
+ 5  │ 01/01/2022  7:57        missing    missing   missing   missing    missing               WESTCHESTER AVENUE    ⋯
+ 6  │ 01/01/2022  13:07       QUEENS     11373     40.7427   -73.8764   (40.742737, -73.876…  missing               ⋯
+ 7  │ 01/01/2022  14:33       missing    missing   40.7599   -73.8387   (40.759945, -73.838…  VAN WYCK EXPWY        ⋯
+ 8  │ 01/01/2022  6:00        BROOKLYN   11222     40.7239   -73.9488   (40.72391, -73.9488…  missing               ⋯
+ 9  │ 01/01/2022  5:17        missing    missing   40.7469   -73.8487   (40.74693, -73.8486…  GRAND CENTRAL PKWY    ⋯
+ 10 │ 01/01/2022  1:30        missing    missing   40.8192   -73.9604   (40.819157, -73.960…  HENRY HUDSON PARKWAY  ⋯
+ 11 │ 01/01/2022  16:40       BRONX      10454     40.8061   -73.918    (40.806107, -73.917…  missing               ⋯
+ 12 │ 01/01/2022  7:33        missing    missing   40.7715   -73.9182   (40.771477, -73.918…  HOYT AVENUE NORTH     ⋯
+ 13 │ 01/01/2022  10:00       missing    missing   missing   missing    missing               VANDAM STREET         ⋯
+ 14 │ 01/01/2022  2:09        QUEENS     11435     40.715    -73.8102   (40.714996, -73.810…  150 STREET            ⋯
+ 15 │ 01/01/2022  21:43       BROOKLYN   11235     40.5839   -73.9379   (40.58392, -73.9379)  missing               ⋯
+ 16 │ 01/01/2022  2:53        BROOKLYN   11232     40.646    -73.9968   (40.646034, -73.996…  missing               ⋯
+ 17 │ 01/01/2022  17:02       MANHATTAN  10002     40.7124   -73.9938   (40.71236, -73.9937…  MADISON STREET        ⋯
+ 18 │ 01/01/2022  3:42        missing    missing   40.6046   -74.0277   (40.604618, -74.027…  BELT PARKWAY          ⋯
+ 19 │ 01/01/2022  15:19       BRONX      10456     40.8338   -73.9005   (40.83375, -73.9004…  missing               ⋯
+ 20 │ 01/01/2022  15:00       BRONX      10453     40.8588   -73.9074   (40.85879, -73.9073…  AQUEDUCT AVENUE       ⋯
+ 21 │ 01/01/2022  3:46        MANHATTAN  10034     40.8658   -73.92     (40.865795, -73.920…  WEST 207 STREET       ⋯
+ 22 │ 01/01/2022  7:30        BROOKLYN   11208     40.6557   -73.8734   (40.655655, -73.873…  VANDALIA AVENUE       ⋯
+ 23 │ 01/01/2022  18:21       BRONX      10466     40.8906   -73.8487   (40.890648, -73.848…  EAST 233 STREET       ⋯
+ 24 │ 01/01/2022  0:20        MANHATTAN  10017     40.7548   -73.9799   (40.75478, -73.9799…  5 AVENUE              ⋯
+ 25 │ 01/01/2022  5:55        QUEENS     11435     40.6933   -73.8023   (40.693344, -73.802…  WALTHAM STREET        ⋯
+ 26 │ 01/01/2022  17:00       missing    missing   40.7012   -73.9141   (40.701195, -73.914…  WYCKOFF AVENUE        ⋯
+ 27 │ 01/01/2022  0:32        QUEENS     11691     40.5958   -73.7647   (40.595802, -73.764…  SEAGIRT BOULEVARD     ⋯
+ 28 │ 01/01/2022  8:00        QUEENS     11372     40.7508   -73.894    (40.75081, -73.8939…  72 STREET             ⋯
+ 29 │ 01/01/2022  0:55        missing    missing   40.6731   -73.9996   (40.673107, -73.999…  BROOKLYN QUEENS EXP…  ⋯
+ 30 │ 01/01/2022  1:50        BRONX      10466     40.8957   -73.8495   (40.895718, -73.849…  PITMAN AVENUE         ⋯
+ 31 │ 01/01/2022  12:22       missing    missing   40.6661   -73.8849   (40.666134, -73.884…  LIVONIA AVENUE        ⋯
+ 32 │ 01/01/2022  1:40        MANHATTAN  10010     40.7342   -73.9748   (40.73422, -73.9748…  AVENUE C              ⋯
+ 33 │ 01/01/2022  12:21       missing    missing   40.6849   -73.9101   (40.684937, -73.910…  BUSHWICK AVENUE       ⋯
+ 34 │ 01/01/2022  18:25       QUEENS     11428     40.7185   -73.7564   (40.718513, -73.756…  90 AVENUE             ⋯
+ ⋮  │     ⋮           ⋮           ⋮         ⋮         ⋮          ⋮               ⋮                     ⋮            ⋱
+```
+
+```python
+>>> from_R = fea.read_table("from_R.arrow")
+>>> from_R
+pyarrow.Table
+CRASH DATE: string
+CRASH TIME: string
+BOROUGH: string
+ZIP CODE: int32
+LATITUDE: double
+LONGITUDE: double
+LOCATION: string
+ON STREET NAME: string
+CROSS STREET NAME: string
+OFF STREET NAME: string
+NUMBER OF PERSONS INJURED: int32
+NUMBER OF PERSONS KILLED: int32
+NUMBER OF PEDESTRIANS INJURED: int32
+NUMBER OF PEDESTRIANS KILLED: int32
+NUMBER OF CYCLIST INJURED: int32
+NUMBER OF CYCLIST KILLED: int32
+NUMBER OF MOTORIST INJURED: int32
+NUMBER OF MOTORIST KILLED: int32
+CONTRIBUTING FACTOR VEHICLE 1: string
+CONTRIBUTING FACTOR VEHICLE 2: string
+CONTRIBUTING FACTOR VEHICLE 3: string
+CONTRIBUTING FACTOR VEHICLE 4: string
+CONTRIBUTING FACTOR VEHICLE 5: string
+COLLISION_ID: int32
+VEHICLE TYPE CODE 1: string
+VEHICLE TYPE CODE 2: string
+VEHICLE TYPE CODE 3: string
+VEHICLE TYPE CODE 4: string
+VEHICLE TYPE CODE 5: string
+----
+CRASH DATE: [["01/01/2022","01/01/2022","01/01/2022","01/01/2022","01/01/2022",...,"01/23/2022","01/23/2022","01/23/2022","01/23/2022","01/23/2022"],["01/23/2022","01/23/2022","01/23/2022","01/23/2022","01/23/2022",...,"01/31/2022","01/31/2022","01/31/2022","01/31/2022","01/31/2022"]]
+CRASH TIME: [["7:05","14:43","21:20","4:30","7:57",...,"20:40","8:30","5:30","11:10","18:15"],["19:36","17:15","18:10","0:00","18:45",...,"12:56","21:50","9:40","6:50","14:40"]]
+BOROUGH: [[null,null,"QUEENS",null,null,...,"QUEENS","BRONX","BROOKLYN",null,"MANHATTAN"],["BROOKLYN","MANHATTAN",null,"QUEENS",null,...,"QUEENS","BROOKLYN","BROOKLYN","BRONX","QUEENS"]]
+ZIP CODE: [[null,null,11414,null,null,...,11411,10469,11224,null,10032],[11249,10009,null,11373,null,...,11358,11217,11249,10457,11415]]
+LATITUDE: [[null,40.769993,40.65723,null,null,...,40.69314,40.87548,40.576885,40.73814,40.839867],[40.707,40.729443,40.738415,40.745197,40.835724,...,40.76289,40.67525,40.70113,40.851097,40.70387]]
+LONGITUDE: [[null,-73.915825,-73.84138,null,null,...,-73.74486,-73.85758,-74.00323,-74.00816,-73.94064],[-73.9673,-73.97804,-73.84899,-73.871574,-73.92129,...,-73.805534,-73.97335,-73.96087,-73.89281,-73.82534]]
+LOCATION: [[null,"(40.769993, -73.915825)","(40.65723, -73.84138)",null,null,...,"(40.69314, -73.74486)","(40.87548, -73.85758)","(40.576885, -74.00323)","(40.73814, -74.00816)","(40.839867, -73.94064)"],["(40.707, -73.9673)","(40.729443, -73.97804)","(40.738415, -73.84899)","(40.745197, -73.871574)","(40.835724, -73.92129)",...,"(40.76289, -73.805534)","(40.67525, -73.97335)","(40.70113, -73.96087)","(40.851097, -73.89281)","(40.70387, -73.82534)"]]
+ON STREET NAME: [["EAST 128 STREET","GRAND CENTRAL PKWY","91 STREET","Southern parkway","WESTCHESTER AVENUE",...,"SPRINGFIELD BOULEVARD","PAULDING AVENUE","NEPTUNE AVENUE","WASHINGTON STREET","WEST 166 STREET"],["WYTHE AVENUE",null,"LONG ISLAND EXPRESSWAY","94 STREET","EAST 167 STREET",...,"NORTHERN BOULEVARD",null,"WYTHE AVENUE","QUARRY ROAD",null]]
+CROSS STREET NAME: [["3 AVENUE BRIDGE",null,"160 AVENUE","Jfk expressway","SHERIDAN EXPRESSWAY",...,"FRANCIS LEWIS BOULEVARD","EAST 211 STREET","WEST 37 STREET",null,"BROADWAY"],["DIVISION AVENUE",null,null,"DENMAN STREET",null,...,"160 STREET",null,"WILLIAMSBURG STREET EAST","EAST 181 STREET",null]]
+OFF STREET NAME: [[null,null,null,null,null,...,null,null,null,null,null],[null,"545       EAST 14 STREET",null,null,null,...,null,"209       LINCOLN PLACE",null,null,"85-29     126 STREET"]]
+...
+```
+
+It can also be converted directly to a Pandas dataframe
+
+```python
+>>> df = fea.read_feather("from_R.arrow")
+>>> df
+      CRASH DATE CRASH TIME   BOROUGH  ...                  VEHICLE TYPE CODE 3  VEHICLE TYPE CODE 4  VEHICLE TYPE CODE 5
+0     01/01/2022       7:05      None  ...                                 None                 None                 None
+1     01/01/2022      14:43      None  ...                                 None                 None                 None
+2     01/01/2022      21:20    QUEENS  ...                                 None                 None                 None
+3     01/01/2022       4:30      None  ...                                 None                 None                 None
+4     01/01/2022       7:57      None  ...                                 None                 None                 None
+...          ...        ...       ...  ...                                  ...                  ...                  ...
+7654  01/31/2022      12:56    QUEENS  ...  Station Wagon/Sport Utility Vehicle                 None                 None
+7655  01/31/2022      21:50  BROOKLYN  ...                                 None                 None                 None
+7656  01/31/2022       9:40  BROOKLYN  ...                                 None                 None                 None
+7657  01/31/2022       6:50     BRONX  ...                                 None                 None                 None
+7658  01/31/2022      14:40    QUEENS  ...                                Sedan                 None                 None
+
+[7659 rows x 29 columns]
+```

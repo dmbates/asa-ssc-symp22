@@ -1,0 +1,149 @@
+---
+title: "Reading the crash data in Python"
+author: Douglas Bates
+affiliation: University of Wisconsin - Madison
+format: html
+jupyter: python3
+---
+
+The `pyarrow` package provides a [CSV-file reader](https://arrow.apache.org/docs/python/csv.html) based on the Arrow C++ library.
+
+```{python}
+from pyarrow import csv
+convert_options = csv.ConvertOptions(
+    auto_dict_encode=True,
+    strings_can_be_null=True,
+    timestamp_parsers=["%m/%d/%Y"],
+)
+tbl = csv.read_csv(
+    'nyc_mv_collisions_202201.csv',
+    convert_options=convert_options
+)
+tbl
+```
+
+Note that the dictionary for the `BOROUGH` column does not include `null` but the indices do.
+
+This table can be converted to a Pandas dataframe and can be written to a `feather version 2` (a.k.a. `Arrow`) file.
+
+```{python}
+import pyarrow.feather as feather
+feather.write_feather(tbl, "./from_python.arrow")
+```
+
+which can, in turn, be read by the "arrow" packages in `R` and `Julia`.
+
+```julia
+julia> using Arrow, TypedTables
+
+julia> from_python = Arrow.Table("./from_python.arrow")
+Arrow.Table with 7659 rows, 29 columns, and schema:
+ Symbol("CRASH DATE")                     Union{Missing, Dates.DateTime}
+ Symbol("CRASH TIME")                     Union{Missing, String}
+ :BOROUGH                                 Union{Missing, String}
+ Symbol("ZIP CODE")                       Union{Missing, Int64}
+ :LATITUDE                                Union{Missing, Float64}
+ :LONGITUDE                               Union{Missing, Float64}
+ :LOCATION                                Union{Missing, String}
+ Symbol("ON STREET NAME")                 Union{Missing, String}
+ Symbol("CROSS STREET NAME")              Union{Missing, String}
+ Symbol("OFF STREET NAME")                Union{Missing, String}
+ Symbol("NUMBER OF PERSONS INJURED")      Union{Missing, Int64}
+ Symbol("NUMBER OF PERSONS KILLED")       Union{Missing, Int64}
+ Symbol("NUMBER OF PEDESTRIANS INJURED")  Union{Missing, Int64}
+ Symbol("NUMBER OF PEDESTRIANS KILLED")   Union{Missing, Int64}
+ Symbol("NUMBER OF CYCLIST INJURED")      Union{Missing, Int64}
+ Symbol("NUMBER OF CYCLIST KILLED")       Union{Missing, Int64}
+ Symbol("NUMBER OF MOTORIST INJURED")     Union{Missing, Int64}
+ Symbol("NUMBER OF MOTORIST KILLED")      Union{Missing, Int64}
+ Symbol("CONTRIBUTING FACTOR VEHICLE 1")  Union{Missing, String}
+ Symbol("CONTRIBUTING FACTOR VEHICLE 2")  Union{Missing, String}
+ Symbol("CONTRIBUTING FACTOR VEHICLE 3")  Union{Missing, String}
+ Symbol("CONTRIBUTING FACTOR VEHICLE 4")  Union{Missing, String}
+ Symbol("CONTRIBUTING FACTOR VEHICLE 5")  Union{Missing, String}
+ :COLLISION_ID                            Union{Missing, Int64}
+ Symbol("VEHICLE TYPE CODE 1")            Union{Missing, String}
+ Symbol("VEHICLE TYPE CODE 2")            Union{Missing, String}
+ Symbol("VEHICLE TYPE CODE 3")            Union{Missing, String}
+ Symbol("VEHICLE TYPE CODE 4")            Union{Missing, String}
+ Symbol("VEHICLE TYPE CODE 5")            Union{Missing, String}
+
+julia> Table(from_python)
+Table with 29 columns and 7659 rows:
+      CRASH DATE           CRASH TIME  BOROUGH    ZIP CODE  LATITUDE  LONGITUDE  LOCATION              ⋯
+    ┌───────────────────────────────────────────────────────────────────────────────────────────────────
+ 1  │ 2022-01-01T00:00:00  7:05        missing    missing   missing   missing    missing               ⋯
+ 2  │ 2022-01-01T00:00:00  14:43       missing    missing   40.77     -73.9158   (40.769993, -73.915…  ⋯
+ 3  │ 2022-01-01T00:00:00  21:20       QUEENS     11414     40.6572   -73.8414   (40.65723, -73.8413…  ⋯
+ 4  │ 2022-01-01T00:00:00  4:30        missing    missing   missing   missing    missing               ⋯
+ 5  │ 2022-01-01T00:00:00  7:57        missing    missing   missing   missing    missing               ⋯
+ 6  │ 2022-01-01T00:00:00  13:07       QUEENS     11373     40.7427   -73.8764   (40.742737, -73.876…  ⋯
+ 7  │ 2022-01-01T00:00:00  14:33       missing    missing   40.7599   -73.8387   (40.759945, -73.838…  ⋯
+ 8  │ 2022-01-01T00:00:00  6:00        BROOKLYN   11222     40.7239   -73.9488   (40.72391, -73.9488…  ⋯
+ 9  │ 2022-01-01T00:00:00  5:17        missing    missing   40.7469   -73.8487   (40.74693, -73.8486…  ⋯
+ 10 │ 2022-01-01T00:00:00  1:30        missing    missing   40.8192   -73.9604   (40.819157, -73.960…  ⋯
+ 11 │ 2022-01-01T00:00:00  16:40       BRONX      10454     40.8061   -73.918    (40.806107, -73.917…  ⋯
+ 12 │ 2022-01-01T00:00:00  7:33        missing    missing   40.7715   -73.9182   (40.771477, -73.918…  ⋯
+ 13 │ 2022-01-01T00:00:00  10:00       missing    missing   missing   missing    missing               ⋯
+ 14 │ 2022-01-01T00:00:00  2:09        QUEENS     11435     40.715    -73.8102   (40.714996, -73.810…  ⋯
+ 15 │ 2022-01-01T00:00:00  21:43       BROOKLYN   11235     40.5839   -73.9379   (40.58392, -73.9379)  ⋯
+ 16 │ 2022-01-01T00:00:00  2:53        BROOKLYN   11232     40.646    -73.9968   (40.646034, -73.996…  ⋯
+ 17 │ 2022-01-01T00:00:00  17:02       MANHATTAN  10002     40.7124   -73.9938   (40.71236, -73.9937…  ⋯
+ 18 │ 2022-01-01T00:00:00  3:42        missing    missing   40.6046   -74.0277   (40.604618, -74.027…  ⋯
+ 19 │ 2022-01-01T00:00:00  15:19       BRONX      10456     40.8338   -73.9005   (40.83375, -73.9004…  ⋯
+ 20 │ 2022-01-01T00:00:00  15:00       BRONX      10453     40.8588   -73.9074   (40.85879, -73.9073…  ⋯
+ 21 │ 2022-01-01T00:00:00  3:46        MANHATTAN  10034     40.8658   -73.92     (40.865795, -73.920…  ⋯
+ 22 │ 2022-01-01T00:00:00  7:30        BROOKLYN   11208     40.6557   -73.8734   (40.655655, -73.873…  ⋯
+ 23 │ 2022-01-01T00:00:00  18:21       BRONX      10466     40.8906   -73.8487   (40.890648, -73.848…  ⋯
+ 24 │ 2022-01-01T00:00:00  0:20        MANHATTAN  10017     40.7548   -73.9799   (40.75478, -73.9799…  ⋯
+ 25 │ 2022-01-01T00:00:00  5:55        QUEENS     11435     40.6933   -73.8023   (40.693344, -73.802…  ⋯
+ 26 │ 2022-01-01T00:00:00  17:00       missing    missing   40.7012   -73.9141   (40.701195, -73.914…  ⋯
+ 27 │ 2022-01-01T00:00:00  0:32        QUEENS     11691     40.5958   -73.7647   (40.595802, -73.764…  ⋯
+ 28 │ 2022-01-01T00:00:00  8:00        QUEENS     11372     40.7508   -73.894    (40.75081, -73.8939…  ⋯
+ 29 │ 2022-01-01T00:00:00  0:55        missing    missing   40.6731   -73.9996   (40.673107, -73.999…  ⋯
+ 30 │ 2022-01-01T00:00:00  1:50        BRONX      10466     40.8957   -73.8495   (40.895718, -73.849…  ⋯
+ 31 │ 2022-01-01T00:00:00  12:22       missing    missing   40.6661   -73.8849   (40.666134, -73.884…  ⋯
+ 32 │ 2022-01-01T00:00:00  1:40        MANHATTAN  10010     40.7342   -73.9748   (40.73422, -73.9748…  ⋯
+ 33 │ 2022-01-01T00:00:00  12:21       missing    missing   40.6849   -73.9101   (40.684937, -73.910…  ⋯
+ 34 │ 2022-01-01T00:00:00  18:25       QUEENS     11428     40.7185   -73.7564   (40.718513, -73.756…  ⋯
+ ⋮  │          ⋮               ⋮           ⋮         ⋮         ⋮          ⋮               ⋮            ⋱
+```
+
+```r
+> from_python <- arrow::read_feather("from_python.arrow")
+> tibble::glimpse(from_python)
+Rows: 7,659
+Columns: 29
+$ `CRASH DATE`                    <dttm> 2021-12-31 18:00:00, 2021-12-31 18:00…
+$ `CRASH TIME`                    <chr> "7:05", "14:43", "21:20", "4:30", "7:5…
+$ BOROUGH                         <fct> NA, NA, QUEENS, NA, NA, QUEENS, NA, BR…
+$ `ZIP CODE`                      <int> NA, NA, 11414, NA, NA, 11373, NA, 1122…
+$ LATITUDE                        <dbl> NA, 40.76999, 40.65723, NA, NA, 40.742…
+$ LONGITUDE                       <dbl> NA, -73.91582, -73.84138, NA, NA, -73.…
+$ LOCATION                        <chr> NA, "(40.769993, -73.915825)", "(40.65…
+$ `ON STREET NAME`                <chr> "EAST 128 STREET", "GRAND CENTRAL PKWY…
+$ `CROSS STREET NAME`             <chr> "3 AVENUE BRIDGE", NA, "160 AVENUE", "…
+$ `OFF STREET NAME`               <chr> NA, NA, NA, NA, NA, "89-22     43 AVEN…
+$ `NUMBER OF PERSONS INJURED`     <int> 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1,…
+$ `NUMBER OF PERSONS KILLED`      <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ `NUMBER OF PEDESTRIANS INJURED` <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ `NUMBER OF PEDESTRIANS KILLED`  <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ `NUMBER OF CYCLIST INJURED`     <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ `NUMBER OF CYCLIST KILLED`      <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ `NUMBER OF MOTORIST INJURED`    <int> 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1,…
+$ `NUMBER OF MOTORIST KILLED`     <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ `CONTRIBUTING FACTOR VEHICLE 1` <fct> Illnes, Unspecified, Unspecified, Pave…
+$ `CONTRIBUTING FACTOR VEHICLE 2` <fct> NA, NA, NA, Unspecified, NA, Unspecifi…
+$ `CONTRIBUTING FACTOR VEHICLE 3` <fct> NA, NA, NA, NA, NA, Unspecified, NA, N…
+$ `CONTRIBUTING FACTOR VEHICLE 4` <fct> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
+$ `CONTRIBUTING FACTOR VEHICLE 5` <fct> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
+$ COLLISION_ID                    <int> 4491172, 4491406, 4491466, 4491626, 44…
+$ `VEHICLE TYPE CODE 1`           <chr> "Sedan", "Sedan", "Sedan", "Sedan", "S…
+$ `VEHICLE TYPE CODE 2`           <chr> NA, "Sedan", NA, "Sedan", NA, "Sedan",…
+$ `VEHICLE TYPE CODE 3`           <fct> NA, NA, NA, NA, NA, Station Wagon/Spor…
+$ `VEHICLE TYPE CODE 4`           <fct> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
+$ `VEHICLE TYPE CODE 5`           <fct> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
+```
+
+Notice that the `CRASH DATE` column has been shifted by -6 hours in `R` compared to the values shown in `Python` and `Julia`.
+I suspect that this is because my time zone is Central Standard Time at the moment, which is UTC-6.

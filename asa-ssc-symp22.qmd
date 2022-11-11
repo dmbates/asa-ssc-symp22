@@ -1,0 +1,144 @@
+---
+title: "Cross-language tools for statistics and data science"
+author: "Douglas Bates"
+institute: "University of Wisconsin - Madison"
+format:
+  revealjs:
+    theme: [sky]
+    transition: fade
+    background-transition: fade
+    highlight-style: pygments
+    footer: "https://dmbates.quarto.pub/asa-ssc-symp22/"
+---
+# Overview
+
+## It was the best of times, it was ...
+
+- Good news: Availability of several powerful, well-supported languages and environments for data science.
+
+- Bad news: Need to learn (and remember) slightly different function names, syntax, and support tools.
+
+- Tools that apply to multiple languages can help reduce cross-talk and cognitive load.
+
+## Will describe three such tools
+
+- [Arrow](https://arrow.apache.org) binary storage format for data tables - accessible from many languages
+
+- [Quarto](https://quarto.org) document preparation system (supported by the newly renamed [Posit.co](https://posit.co), formerly RStudio).
+
+- [VSCode](https://code.visualstudio.com) editor and extensions
+
+## My background
+
+- early experience with `S` in 1980's, then `R` in 1990's and beyond
+- member of R-Core since 1997 (no longer active in development of `R`)
+- know Base-R pretty well, not a tidyverse expert
+- some experience with Python in 1990's, early 2000's for web-site development
+- predominantly working in Julia for the last decade
+
+## Demo of Arrow and Quarto
+
+- three brief write-ups at [dmbates.quarto.pub](https://dmbates.quarto.pub), reading and saving the collisions data.
+- shout-out to Posit.co for providing `quarto.pub`, which is incredibly easy to use
+
+## Powerful open-source tools
+
+- [R](https://r-project.org) and [Python](https://python.org) very widely-used for data science.
+- [Julia](https://julialang.org) has a smaller, but dedicated, following.
+- In the next session each of these languages will be demonstrated by an expert.
+- Each language is supported by thousands of packages.
+- The combinations of languages and packages provide incredible opportunities but so much to learn and remember.
+
+## Each language can be used
+
+- in a REPL (read-eval-print-loop)
+- through scripts or notebooks (e.g. [Jupyter](https://jupyter.org), whose name is built from "Julia, Python and R")
+- in document-creation systems like [Quarto](https://quarto.org)
+- across many platforms from laptops to cloud servers to supercomputers
+- in conjunction with version control systems like [git](https://git-scm.com) and internet repositories like [github](https://github.com) or [gitlab](https://gitlab.com)
+
+## Open Source and a REPL were key
+
+- In the 1990's, `R` (based on the earlier language, `S`) pioneered Open Source data analysis
+    + Open Source was still considered kind-of "iffy". Our efforts were dismissed as "freeware" or as the "student edition" of S-PLUS.
+    + Expensive commercial systems used proprietary formats in batch-oriented scripts or restrictive GUI's. (Minitab and Matlab were exceptions).
+    + Eric Raymond contrasted these approaches in [The Cathedral and the Bazaar](https://en.wikipedia.org/wiki/The_Cathedral_and_the_Bazaar).
+
+## Bazaar - accessible but confusing
+
+- It is wonderful to have several different languages and systems with which to do data science.
+- Teams can need to use multiple languages.
+- In any case, it is good to have exposure to more than one way to do an analysis.
+- But few people have the time or capacity to learn to use all these languages effectively.
+- In some ways it is a matter of balancing time to learn tools versus time spent using tools.
+
+## Re-express the data table(s)
+
+- We like to think that model-building and visualization techniques are our big "value-added".
+- In the real world a large part of our time is spend wrangling the data into a usable form.
+- Often the data come to us in a human-readable form, like CSV (e.g. `nyc_mv_collisions_202201.csv`).
+Reading it & transforming/cleaning the results is expensive, tedious and error-prone.
+- Once you have a satisfactory version, save it in a binary form with associated metadata.
+
+## The Arrow format
+
+- An `apache.org` project with implementations in many languages.
+- Most 'high-level' language implementations are based on the C++ library (Julia and Rust are exceptions).
+- Python/Pandas developers were early advocates
+- Column-oriented format for flat and hierarchical data
+- The C++ library provides analytics capability in addition to data manipulation
+
+## As we have seen
+
+- The Arrow format is promising but not yet foolproof.
+
+## From data to report
+
+- Most data science activities produce some kind of report or dashboard or website or book or ...
+- `R` users often use `RMarkdown` or `knitr` documents or `Shiny` interactive pages using [Posit](https://posit.co) (formerly RStudio) tools.
+- `Python` users may be more familiar with `Jupyter` notebooks and the `jupyterlab` environment.
+- Both systems allow for "reproducible research" where output, tables and figures are created from embedded source code.
+
+## Enter Quarto
+
+- [Quarto](https://quarto.org) is a reimplementation and generalization of the `RMarkdown/knitr` approach for documents
+- Its development is supported by [Posit](https://posit.co/) (formerly `RStudio`).
+- Open Source (https://github.com/quarto-dev/quarto-cli/), it builds on [pandoc](https://pandoc.org/)
+- Code execution can be through `knitr` for `R` and conversion to [Jupyter](https://jupyter.org) for `Python` and `Julia`
+- Equations, citations, cross-refs, callouts, and more
+
+## Check the documentation
+
+- There are many documentation sites and presentations about [Quarto](https://quarto.org)
+- For example, a [recent presentation](https://ivelasq.quarto.pub/intro-to-quarto/) by [Isabella Velásquez](https://github.com/ivelasq) has *much* better slides than these.
+- Also check out the [Awesome Quarto](https://github.com/mcanouil/awesome-quarto) repository.
+
+## My experience
+
+- I am not involved in Quarto development; I am simply a satisfied and grateful user.
+
+- Our in-development book [Embrace Uncertainty](https://juliamixedmodels.github.io/EmbraceUncertainty) describes mixed-effects models and a [Julia](https://julialang.org) package for fitting them.
+
+- Our [Julia for Data Science](https://crsl4.github.io/julia-workshop) workshop used a website built with Quarto.
+
+## Editing source files
+
+- The [RStudio IDE](https://posit.co/products/open-source/rstudio/) is widely used by those working with `R` (and `Python`?)
+- It seems that the [Quarto visual editor](https://quarto.org/docs/visual-editor/) is the same as the RStudio IDE at present
+- [Jupyterlab](https://jupyter.org/) is another alternative
+- [VS Code](https://code.visualstudio.com) is actively developed
+
+## VS Code
+
+- A MicroSoft product with community support
+- Specialized by "languageserver" and syntax implementations for many systems (e.g. Quarto)
+- Very good git support (Microsoft owns github)
+- Very good ssh support (a priority for Microsoft)
+- Editing, running shells, etc. on a remote computer can be as easy as on your local machine.
+
+## Conclusions
+
+- We have many wonderful tools for data science available to us.
+- Time to learn such tools is at a premium.
+- It is good to be aware of the existence of tools, even if you can't take time to learn them right now.
+- I have offered 3 such tools to consider.

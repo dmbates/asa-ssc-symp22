@@ -1,0 +1,254 @@
+---
+title: "Reading and saving the crash data"
+author: Douglas Bates
+affiliation: University of Wisconsin - Madison
+format: html
+jupyter: julia-1.8
+---
+
+Part of the data for the [Data Jamboree](https://asa-ssc.github.io/minisymp2022/jamboree/) during the [Statistical Computing in Action Mini-Symposium 2022](https://asa-ssc.github.io/minisymp2022/) is available as [nyc_mv_collisions_202201.csv](https://github.com/statds/ids-s22/raw/main/notes/data/nyc_mv_collisions_202201.csv)
+
+The purpose of this note is to read the CSV file, do some minor validation/rearrangment of the data, raise some other questions about the data, and store it in [Arrow](https://arrow.apache.org) format.
+
+I will use Julia and some Julia packages for this, just because I know them well.
+One selling point of the Arrow format is that it can be read and written from many different languages, including Julia, Python and R so this conversion could be carried out in any of those languages.
+
+There are two accompanying documents that read this file in Python and in R and then store it in Arrow format.
+
+## Read the CSV file in Julia
+
+First, load the packages to be used
+
+```{julia}
+using Arrow, CSV, DataFrames, Dates
+```
+
+Read and examine the CSV file
+
+```{julia}
+df = CSV.read(
+    "nyc_mv_collisions_202201.csv",
+    DataFrame;
+    downcast=true,
+    normalizenames=true,
+    pool=true,
+    stringtype=String,
+)
+df.CRASH_DATE = Date.(df.CRASH_DATE, "mm/dd/yyyy");
+size(df)
+```
+
+```{julia}
+describe(df)
+```
+
+## Questions from the data summary
+
+Some observations on the data summary
+
+1. The `CRASH_DATE`s are all in the correct month and there are no missing values
+2. There are no missing values in the `CRASH_TIME`s but there are 117 values of exactly `00:00:00`. Is this a matter of bad luck when the clock strikes midnight?
+3. Over 1/3 of the `ZIP_CODE` and `BOROUGH` values are missing.  There are the same number of missing values in these columns - do they always co-occur?  If `LATITUDE` and `LONGITUDE` are available, can they be used to infer the `ZIP_CODE`?
+3. There are 178 unique non-missing `ZIP_CODE` values as stated in the Jamboree description.  ("Trust, but verify.")  Is there really a zip code of 10000 in New York?
+4. There are 20 values of `0.0` for `LATITUDE` and `LONGITUDE`?  These are obviously incorrect - should they be coded as `missing`?
+5. Is it redundant to keep the `LOCATION` in addition to `LATITUDE` and `LONGITUDE`?
+6. The `COLLISION_ID` is unique to each row and can be used as a key.  The values are not consecutive - why not?
+7. The `NUMBER_OF_...` columns seem reasonable.  A further consistency check is suggested in the Jamboree tasks.
+8. In the `CONTRIBUTING_FACTOR_...` columns, is `Unspecified` different from `missing`?
+9. The codes in the `VEHICLE_TYPE_CODE_...` columns are the usual hodge-podge of results from "free-form" data entry.  Should `unk`, `UNK`, `UNKNOWN`, and `Unknown` be converted to `missing`?
+10. In contrast, the codes in the `CONTRIBUTING_FACTOR_...` columns appear to be standardized (not sure why `Illnes` isn't `Illness`).
+
+Addressing a few of these issues
+
+```{julia}
+replace!(df.LATITUDE, 0.0 => missing)
+replace!(df.LONGITUDE, 0.0 => missing)
+select!(df, Not(:LOCATION))
+describe(df)
+```
+
+we save it in Arrow format
+
+```{julia}
+Arrow.write("nyc_mv_collisions_202201.arrow", df)
+```
+
+Because Arrow is a binary format and because the columns that are shown as strings are stored in a dictionary encoding, the Arrow file is about half the size of the CSV file.
+
+```sh
+$ ls -lah nyc_mv_collisions_202201.*
+-rw-rw-r-- 1 bates bates 583K Nov  8 13:28 nyc_mv_collisions_202201.arrow
+-rw-rw-r-- 1 bates bates 1.4M Nov  8 08:02 nyc_mv_collisions_202201.csv
+```
+
+It is also possible to apply either `zstd` or `lz4` compression to the columns of the file.
+In this case it is probably better to leave it uncompressed and take advantage of [memory mapping](https://en.wikipedia.org/wiki/Memory-mapped_file).
+
+Metadata key-value strings (e.g. description of table, URL for download of original source) can be added to the file or to columns within the file.
+
+## Reading the Arrow file
+
+We can reconstruct a Julia table from the arrow file
+
+```{julia}
+tbl = Arrow.Table("nyc_mv_collisions_202201.arrow")
+```
+
+which could be converted to a `DataFrame` or other type of table, if desired.
+
+The file can also be read in R with `arrow::read_feather` and in Python with the `pyarrow` package.
+
+
+```r
+> df <- arrow::read_feather("nyc_mv_collisions_202201.arrow")
+> tibble::glimpse(df)
+Rows: 7,659
+Columns: 28
+$ CRASH_DATE                    <date> 2022-01-01, 2022-01-01, 2022-01-01, 202…
+$ CRASH_TIME                    <hms> 25500 secs, 52980 secs, 76800 secs, 1620…
+$ BOROUGH                       <fct> NA, NA, QUEENS, NA, NA, QUEENS, NA, BROO…
+$ ZIP_CODE                      <int> NA, NA, 11414, NA, NA, 11373, NA, 11222,…
+$ LATITUDE                      <dbl> NA, 40.76999, 40.65723, NA, NA, 40.74274…
+$ LONGITUDE                     <dbl> NA, -73.91582, -73.84138, NA, NA, -73.87…
+$ ON_STREET_NAME                <fct> EAST 128 STREET, GRAND CENTRAL PKWY, 91 …
+$ CROSS_STREET_NAME             <fct> 3 AVENUE BRIDGE, NA, 160 AVENUE, Jfk exp…
+$ OFF_STREET_NAME               <fct> NA, NA, NA, NA, NA, 89-22     43 AVENUE,…
+$ NUMBER_OF_PERSONS_INJURED     <int> 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0…
+$ NUMBER_OF_PERSONS_KILLED      <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ NUMBER_OF_PEDESTRIANS_INJURED <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ NUMBER_OF_PEDESTRIANS_KILLED  <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ NUMBER_OF_CYCLIST_INJURED     <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ NUMBER_OF_CYCLIST_KILLED      <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ NUMBER_OF_MOTORIST_INJURED    <int> 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0…
+$ NUMBER_OF_MOTORIST_KILLED     <int> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ CONTRIBUTING_FACTOR_VEHICLE_1 <fct> Illnes, Unspecified, Unspecified, Paveme…
+$ CONTRIBUTING_FACTOR_VEHICLE_2 <fct> NA, NA, NA, Unspecified, NA, Unspecified…
+$ CONTRIBUTING_FACTOR_VEHICLE_3 <fct> NA, NA, NA, NA, NA, Unspecified, NA, NA,…
+$ CONTRIBUTING_FACTOR_VEHICLE_4 <fct> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ CONTRIBUTING_FACTOR_VEHICLE_5 <fct> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ COLLISION_ID                  <int> 4491172, 4491406, 4491466, 4491626, 4491…
+$ VEHICLE_TYPE_CODE_1           <fct> Sedan, Sedan, Sedan, Sedan, Sedan, Sedan…
+$ VEHICLE_TYPE_CODE_2           <fct> NA, Sedan, NA, Sedan, NA, Sedan, Station…
+$ VEHICLE_TYPE_CODE_3           <fct> NA, NA, NA, NA, NA, Station Wagon/Sport …
+$ VEHICLE_TYPE_CODE_4           <fct> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ VEHICLE_TYPE_CODE_5           <fct> NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+```
+
+(It might have been better to convert the `CRASH_DATE` and `CRASH_TIME` to a `DateTime` before writing the Arrow file.)
+
+
+```python
+>>> import pyarrow.feather as fea
+>>> fea.read_table('nyc_mv_collisions_202201.arrow')
+pyarrow.Table
+CRASH_DATE: date32[day] not null
+CRASH_TIME: time64[ns] not null
+BOROUGH: dictionary<values=string, indices=int8, ordered=0>
+ZIP_CODE: int16
+LATITUDE: double
+LONGITUDE: double
+ON_STREET_NAME: dictionary<values=string, indices=int16, ordered=0>
+CROSS_STREET_NAME: dictionary<values=string, indices=int16, ordered=0>
+OFF_STREET_NAME: dictionary<values=string, indices=int16, ordered=0>
+NUMBER_OF_PERSONS_INJURED: int8 not null
+NUMBER_OF_PERSONS_KILLED: int8 not null
+NUMBER_OF_PEDESTRIANS_INJURED: int8 not null
+NUMBER_OF_PEDESTRIANS_KILLED: int8 not null
+NUMBER_OF_CYCLIST_INJURED: int8 not null
+NUMBER_OF_CYCLIST_KILLED: int8 not null
+NUMBER_OF_MOTORIST_INJURED: int8 not null
+NUMBER_OF_MOTORIST_KILLED: int8 not null
+CONTRIBUTING_FACTOR_VEHICLE_1: dictionary<values=string, indices=int8, ordered=0>
+CONTRIBUTING_FACTOR_VEHICLE_2: dictionary<values=string, indices=int8, ordered=0>
+CONTRIBUTING_FACTOR_VEHICLE_3: dictionary<values=string, indices=int8, ordered=0>
+CONTRIBUTING_FACTOR_VEHICLE_4: dictionary<values=string, indices=int8, ordered=0>
+CONTRIBUTING_FACTOR_VEHICLE_5: dictionary<values=string, indices=int8, ordered=0>
+COLLISION_ID: int32 not null
+VEHICLE_TYPE_CODE_1: dictionary<values=string, indices=int8, ordered=0>
+VEHICLE_TYPE_CODE_2: dictionary<values=string, indices=int8, ordered=0>
+VEHICLE_TYPE_CODE_3: dictionary<values=string, indices=int8, ordered=0>
+VEHICLE_TYPE_CODE_4: dictionary<values=string, indices=int8, ordered=0>
+VEHICLE_TYPE_CODE_5: dictionary<values=string, indices=int8, ordered=0>
+----
+CRASH_DATE: [[2022-01-01,2022-01-01,2022-01-01,2022-01-01,2022-01-01,...,2022-01-31,2022-01-31,2022-01-31,2022-01-31,2022-01-31]]
+CRASH_TIME: [[07:05:00.000000000,14:43:00.000000000,21:20:00.000000000,04:30:00.000000000,07:57:00.000000000,...,12:56:00.000000000,21:50:00.000000000,09:40:00.000000000,06:50:00.000000000,14:40:00.000000000]]
+BOROUGH: [  -- dictionary:
+[null,"QUEENS","BROOKLYN","BRONX","MANHATTAN","STATEN ISLAND"]  -- indices:
+[null,null,1,null,null,...,1,2,2,3,1]]
+ZIP_CODE: [[null,null,11414,null,null,...,11358,11217,11249,10457,11415]]
+LATITUDE: [[null,40.769993,40.65723,null,null,...,40.76289,40.67525,40.70113,40.851097,40.70387]]
+LONGITUDE: [[null,-73.915825,-73.84138,null,null,...,-73.805534,-73.97335,-73.96087,-73.89281,-73.82534]]
+ON_STREET_NAME: [  -- dictionary:
+["EAST 128 STREET","GRAND CENTRAL PKWY","91 STREET","Southern parkway","WESTCHESTER AVENUE",...,"WEST 22 STREET","HEMPSTEAD TURNPIKE","NEW ENGLAND THRUWAY RAMP","KING ROAD","QUARRY ROAD"]  -- indices:
+[0,1,2,3,4,...,107,null,1103,1648,null]]
+CROSS_STREET_NAME: [  -- dictionary:
+["3 AVENUE BRIDGE",null,"160 AVENUE","Jfk expressway","SHERIDAN EXPRESSWAY",...,"TOTTEN ROAD","13 AVENUE","PILLING STREET","MILFORD STREET","TRINITY AVENUE"]  -- indices:
+[0,null,2,3,4,...,1013,null,1508,1577,null]]
+OFF_STREET_NAME: [  -- dictionary:
+[null,"89-22     43 AVENUE","132       ECKFORD STREET","520       EAST 137 STREET","3030      EMMONS AVENUE",...,"125       WEST KINGSBRIDGE ROAD","486       GATES AVENUE","699       RALPH AVENUE","209       LINCOLN PLACE","85-29     126 STREET"]  -- indices:
+[null,null,null,null,null,...,null,2000,null,null,2001]]
+NUMBER_OF_PERSONS_INJURED: [[0,0,0,0,0,...,1,0,0,0,0]]
+...
+```
+
+## Suggestions for a second round of data cleaning
+
+1. Combine the `CRASH_DATE` and `CRASH_TIME` columns into a single `DateTime` column.
+2. Re-express the `CONTRIBUTING_FACTOR_...` columns, possibly after replacing`"Unspecified" => missing`, as a separate table with columns `COLLISION_ID`, `VEHICLE`, and `CONTRIBUTING_FACTOR`.
+3. Re-express the `VEHICLE_TYPE_CODE_...` columns similarly.  If the vehicle types are to be of practical use they will probably need to be re-expressed in well-defined categories.
+
+```{julia}
+dt = DataFrame(dt = DateTime.(df.CRASH_DATE, df.CRASH_TIME))
+```
+
+```{julia}
+Arrow.write("dt.arrow", dt)
+```
+
+```python
+$ python
+Python 3.10.6 | packaged by conda-forge | (main, Aug 22 2022, 20:35:26) [GCC 10.4.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import pyarrow.feather as fea
+>>> fea.read_table("dt.arrow")
+pyarrow.Table
+dt: timestamp[ms] not null
+----
+dt: [[2022-01-01 07:05:00.000,2022-01-01 14:43:00.000,2022-01-01 21:20:00.000,2022-01-01 04:30:00.000,2022-01-01 07:57:00.000,...,2022-01-31 12:56:00.000,2022-01-31 21:50:00.000,2022-01-31 09:40:00.000,2022-01-31 06:50:00.000,2022-01-31 14:40:00.000]]
+>>> fea.read_feather("dt.arrow")
+                      dt
+0    2022-01-01 07:05:00
+1    2022-01-01 14:43:00
+2    2022-01-01 21:20:00
+3    2022-01-01 04:30:00
+4    2022-01-01 07:57:00
+...                  ...
+7654 2022-01-31 12:56:00
+7655 2022-01-31 21:50:00
+7656 2022-01-31 09:40:00
+7657 2022-01-31 06:50:00
+7658 2022-01-31 14:40:00
+
+[7659 rows x 1 columns]
+```
+
+```r
+> dt <- arrow::read_feather("dt.arrow")
+> tibble::glimpse(dt)
+Rows: 7,659
+Columns: 1
+$ dt <dttm> 2022-01-01 01:05:00, 2022-01-01 08:43:00, 2022-01-01 15:20:00, 202…
+```
+
+**Notice that the date-times in `R` have been offset by -6 hours.**  (My time zone currently is CST or UTC-6.)
+
+## Perhaps better to convert to Arrow in Python/Pandas
+
+There is another function `read_feather` in `pyarrow.feather` that returns a Pandas data frame.
+In this case it fails with the error
+```
+ValueError: Categorical categories cannot be null
+```
+
+If you look at the summary of the categorical columns from `read_table` you will see that the Julia `Arrow` package has included `null` in both the dictionary table and as an index into that table.
+Pandas expects that an index can be `null` but not an element of the dictionary table.
